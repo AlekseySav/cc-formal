@@ -1,0 +1,23 @@
+#!/bin/bash
+
+run=0
+
+if [[ $1 == "-run" ]]; then
+    run=1
+    shift 1
+fi
+
+if [[ $# -ne 2 ]]; then
+    echo "usage: tools/ccom [-run] <input.c> <output>" >&2
+    exit 1
+fi
+
+./cc <$1 | tools/generate-code.py >$2.asm # generate assembly code
+nasm $2.asm -o $2.tmp
+truncate -s 16K $2.tmp # need 16 Kib size for bootloader to run it
+cat tools/boot $2.tmp >$2
+rm $2.asm $2.tmp
+
+if [[ $run -ne 0 ]]; then
+    qemu-system-x86_64 $2 2>/dev/null
+fi
