@@ -119,3 +119,46 @@ TEST(lexer, lines) {
     ASSERT_EQ(lex.token(), L_semicolon); ASSERT_EQ(f.line, 3);
     ASSERT_EQ(lex.token(true), L_eof); ASSERT_EQ(f.line, 7);
 }
+
+TEST(lexer, queue) {
+    file f = file::fromMemory(".;");
+    LexerState lex(f);
+    ASSERT_EQ(lex.token(), L_dot);
+    lex.enqueue(L_add);
+    lex.enqueue(L_sub);
+    ASSERT_EQ(lex.token(), L_add);
+    ASSERT_EQ(lex.token(), L_sub);
+    ASSERT_EQ(lex.token(), L_semicolon);
+    ASSERT_EQ(lex.token(true), L_eof);
+}
+
+TEST(lexer, trytok) {
+    file f = file::fromMemory("++--");
+    LexerState lex(f);
+    ASSERT_TRUE(lex.tryToken(L_inc));
+    ASSERT_TRUE(lex.tryToken(L_dec));
+    ASSERT_TRUE(lex.tryToken(L_eof));
+    file f2 = file::fromMemory("++--");
+    LexerState lex2(f2);
+    ASSERT_FALSE(lex2.tryToken(L_dec));
+    ASSERT_FALSE(lex2.tryToken(L_dec));
+    ASSERT_FALSE(lex2.tryToken('a'));
+    ASSERT_FALSE(lex2.tryToken(L_eof));
+    ASSERT_TRUE(lex2.tryToken(L_inc));
+    ASSERT_FALSE(lex2.tryToken(L_inc));
+    ASSERT_TRUE(lex2.tryToken(L_dec));
+    ASSERT_FALSE(lex2.tryToken('a'));
+    ASSERT_TRUE(lex2.tryToken(L_eof));
+}
+
+TEST(lexer, assert) {
+    file f = file::fromMemory("++--a/a.");
+    LexerState lex(f);
+    lex.assertToken(L_inc);
+    lex.assertToken(L_dec);
+    lex.assertToken(L_symbol);
+    lex.assertToken(L_div);
+    lex.assertToken(L_symbol);
+    lex.assertToken(L_dot);
+    lex.assertToken(L_eof);
+}

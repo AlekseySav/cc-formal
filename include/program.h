@@ -4,7 +4,7 @@ class Program {
 public:
     Program(file& input, std::ostream& output);
     ~Program();
-    void define();
+    void extractDefinition();
     void statement(int label = 0);
     inline bool eof() { return lex.tryToken(L_eof); }
 private:
@@ -12,7 +12,7 @@ private:
     int pointer_size(expr_tree& expr);
     int read_primary_type(); // char, int, struct <name>, returns size
     void statements(int label = 0);
-    int declare(expr_tree expr, int size, symbol_type kind, bool local);
+    int declare_variable(expr_tree expr, int size, symbol_type kind, bool local);
     void enter_function(expr_tree args);
     int push_args(expr_tree args);
     expr_tree put_expr(expr_tree expr);

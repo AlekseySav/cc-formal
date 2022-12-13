@@ -6,13 +6,15 @@ void SymbolTable::add(const std::string& name, symbol_type kind, int value, int 
         return;
     }
     table[name] = std::move(unnamed_symbol{kind, value, size, std::move(type)});
-    if (kind == S_local)
+    if (kind == S_local) {
         locals.push_back(name);
+    }
 }
 
 void SymbolTable::deleteLocals() {
-    for (auto& name : locals)
+    for (auto& name : locals) {
         table.erase(name);
+    }
 }
 
 unnamed_symbol& SymbolTable::lookup(const std::string& name) {

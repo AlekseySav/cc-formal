@@ -6,7 +6,7 @@ int main() {
     Logger::defalut_logger = &logger;
     Program program(input, std::cout);
     while (!program.eof()) {
-        program.define();
+        program.extractDefinition();
         program.symbol_table.deleteLocals();
     }
 }

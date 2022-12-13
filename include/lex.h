@@ -8,6 +8,11 @@ struct lexvalue {
     lexvalue& operator=(const lexvalue&) = default;
 };
 
+struct lex_and_value {
+    int token;
+    lexvalue value;
+};
+
 class LexerState {
 public:
     LexerState(file& input) : input(input) {}
@@ -16,7 +21,7 @@ public:
     void assertToken(int to);
     void enqueue(int token, lexvalue* value = nullptr);
 public:
-    std::queue<std::pair<int, lexvalue>> queue;
+    std::queue<lex_and_value> queue;
     lexvalue value;
     file& input;
 private:

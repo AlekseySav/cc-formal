@@ -52,27 +52,27 @@ int op_prefix(int token) {
 }
 
 expr_node* ParserState::vnode(int type, lexvalue value) {
-    expr_node* n = &node_pool[used_nodes++];
+    expr_node* node = &node_pool[used_nodes++];
     if (used_nodes == MAX_EXPR_NODES) fatal("expression overflow");
-    n->type = type;
-    n->value = value;
-    n->n1 = n->n2 = nullptr;
-    return n;
+    node->type = type;
+    node->value = value;
+    node->n1 = node->n2 = nullptr;
+    return node;
 }
 
 expr_node* ParserState::node(int type) {
-    expr_node* n = &node_pool[used_nodes++];
+    expr_node* node = &node_pool[used_nodes++];
     if (used_nodes == MAX_EXPR_NODES) fatal("expression overflow");
-    n->type = type;
+    node->type = type;
     if (op_binary(type)) {
-        n->n2 = pop_node();
-        n->n1 = pop_node();
+        node->n2 = pop_node();
+        node->n1 = pop_node();
     }
     else {
-        n->n1 = pop_node();
-        n->n2 = nullptr;
+        node->n1 = pop_node();
+        node->n2 = nullptr;
     }
-    return n;
+    return node;
 }
 
 expr_node* ParserState::pop_node() {
@@ -114,8 +114,8 @@ expr_tree ParserState::expr(int end) {
 expr_tree ParserState::pexpr()
 {
     lex.assertToken(L_brace('('));
-    expr_tree n = expr(L_brace(')'));
-    return n;
+    expr_tree node = expr(L_brace(')'));
+    return node;
 }
 
 void ParserState::_expr(int end) {

@@ -4,7 +4,7 @@ enum symbol_type {
     S_none,
     S_keyword,        /* special */
     S_constant,       /* $value */
-    S_string,         /* .S<value> */
+    S_string,         /* S<value> */
     S_global,         /* (name) */
     S_local,          /* value(bp) */
 };

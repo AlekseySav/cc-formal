@@ -3,12 +3,12 @@
 
 expr_node* copy_node(expr_node* tree) {
     if (!tree) return nullptr;
-    expr_node* n = new expr_node(*tree);
-    n->n1 = copy_node(tree->n1);
-    n->n2 = copy_node(tree->n2);
-    n->type = tree->type;
-    n->value = tree->value;
-    return n;
+    expr_node* node = new expr_node(*tree);
+    node->n1 = copy_node(tree->n1);
+    node->n2 = copy_node(tree->n2);
+    node->type = tree->type;
+    node->value = tree->value;
+    return node;
 }
 
 expr_node* pop_node(expr_node* tree) {
@@ -72,12 +72,12 @@ int expr_tree::subexpr_count()
 {
     if (!root) return 0;
     expr_node* node = root;
-    int n = 1;
+    int count = 1;
     while (node && node->type == L_comma) {
         node = node->n1;
-        n++;
+        count++;
     }
-    return n;
+    return count;
 }
 
 void expr_tree::operator=(expr_tree&& node) {

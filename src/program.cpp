@@ -25,22 +25,22 @@ Program::~Program() {
     }
 }
 
-void Program::define() {
+void Program::extractDefinition() {
     expr_tree tree = parse.expr();
     switch (tree.expr_type()) {
         case L_call: { // function
             locals_offset = 0;
-            auto[n1, n2] = std::move(tree).split();
-            if (n1.expr_type() != L_symbol) {
+            auto[node1, node2] = std::move(tree).split();
+            if (node1.expr_type() != L_symbol) {
                 error("bad function name");
                 return;
             }
             int label = n_labels++;
-            output << '_' << n1.value().as_symbol << ':' << '\n';
+            output << '_' << node1.value().as_symbol << ':' << '\n';
             output << '#' << L_put_label << ' ' << 0 << ' ' << label << '\n';
             output << 'L' << label << ':' << '\n';
             output << '#' << L_enter_function << '\n';
-            enter_function(std::move(n2));
+            enter_function(std::move(node2));
             statement();
             output << '#' << L_leave_function << '\n';
             return;
@@ -71,7 +71,7 @@ void Program::statement(int label) {
             put_asm();
             break;
         case K_int: case K_char: {
-            int adjust = declare(parse.expr(), key == K_int ? WORD_SIZE : 1, S_local, true);
+            int adjust = declare_variable(parse.expr(), key == K_int ? WORD_SIZE : 1, S_local, true);
             if (adjust)
                 output << '#' << L_adjust_stack << ' ' << 0 << ' ' << adjust << '\n';
             lex.assertToken(L_semicolon);
@@ -87,7 +87,7 @@ void Program::statement(int label) {
             break;
         case K_extern: {
             int size = read_primary_type();
-            declare(parse.expr(), size, S_global, true);
+            declare_variable(parse.expr(), size, S_global, true);
             break;
         }
         case K_if: {
@@ -168,13 +168,13 @@ void Program::statements(int label) {
         statement(label);
 }
 
-int Program::declare(expr_tree expr, int size, symbol_type kind, bool local) {
+int Program::declare_variable(expr_tree expr, int size, symbol_type kind, bool local) {
     int capacity = WORD_SIZE;
     int count = 0, ptr_level = 0;
     if (expr.expr_type() == L_comma) {
-        auto[n1, n2] = std::move(expr).split();
-        count += declare(std::move(n1), size, kind, local);
-        expr = std::move(n2);
+        auto[node1, node2] = std::move(expr).split();
+        count += declare_variable(std::move(node1), size, kind, local);
+        expr = std::move(node2);
     }
     expr_tree sym_type = expr_tree::copy(expr);
     while (expr.expr_type() != L_symbol) {
@@ -182,8 +182,8 @@ int Program::declare(expr_tree expr, int size, symbol_type kind, bool local) {
             error("bad declaration");
             return count;
         }
-        auto[n1, n2] = std::move(expr).split();
-        expr = std::move(n1);
+        auto[node1, node2] = std::move(expr).split();
+        expr = std::move(node1);
     }
     unnamed_symbol* sym = &symbol_table.lookup(expr.value().as_symbol);
     if (sym->kind == S_none) { /* new variable */
@@ -209,10 +209,10 @@ void Program::enter_function(expr_tree args) {
     if (args.expr_type() == L_empty_expr)
         return;
     while (args.expr_type() == L_comma) {
-        auto[n1, n2] = std::move(args).split();
+        auto[node1, node2] = std::move(args).split();
         arg_offset -= WORD_SIZE;
-        symbol_table.add(n2.value().as_symbol, S_local, arg_offset, WORD_SIZE);
-        args = std::move(n1);
+        symbol_table.add(node2.value().as_symbol, S_local, arg_offset, WORD_SIZE);
+        args = std::move(node1);
     }
     arg_offset -= WORD_SIZE;
     symbol_table.add(args.value().as_symbol, S_local, arg_offset, WORD_SIZE);
@@ -224,10 +224,10 @@ int Program::push_args(expr_tree args)
         return 0;
     int n_args = 1;
     while (args.expr_type() == L_comma) {
-        auto[n1, n2] = std::move(args).split();
-        put_expr(std::move(n2));
+        auto[node1, node2] = std::move(args).split();
+        put_expr(std::move(node2));
         output << '#' << L_push << '\n';
-        args = std::move(n1);
+        args = std::move(node1);
         n_args++;
     }
     put_expr(std::move(args));
@@ -298,34 +298,34 @@ expr_tree Program::put_expr(expr_tree expr) {
             return type;
         /* member access */
         case L_dot: case L_arrow: {
-            auto[n1, n2] = std::move(expr).split();
-            if (n2.expr_type() != L_symbol) {
+            auto[node1, node2] = std::move(expr).split();
+            if (node2.expr_type() != L_symbol) {
                 error("bad token for member acces");
                 return {};
             }
-            type = put_expr(std::move(n1));
-            output << '#' << expr_operator << ' ' << type.lvalue_size() << ' ' << n2.value().as_symbol << '\n';
+            type = put_expr(std::move(node1));
+            output << '#' << expr_operator << ' ' << type.lvalue_size() << ' ' << node2.value().as_symbol << '\n';
             return type;
         }
         /* index */
         case L_index: {
-            auto[n1, n2] = std::move(expr).split();
-            type = put_expr(std::move(n1));
+            auto[node1, node2] = std::move(expr).split();
+            type = put_expr(std::move(node1));
             if (type.is_empty() || type.expr_type() != L_star) {
                 error("trying to index non-pointer type");
                 return type;
             }
             output << '#' << L_push << '\n';
-            put_expr(std::move(n2));
+            put_expr(std::move(node2));
             type.pop();
             output << '#' << L_index << ' ' << type.lvalue_size() << '\n';
             return type;
         }
         /* call */
         case L_call: {
-            auto[n1, n2] = std::move(expr).split();
-            int n_args = push_args(std::move(n2));
-            type = put_expr(std::move(n1));
+            auto[node1, node2] = std::move(expr).split();
+            int n_args = push_args(std::move(node2));
+            type = put_expr(std::move(node1));
             if (type.is_empty() || type.expr_type() != L_call) {
                 error("trying to call not a function and not a pointer-to-a-function");
                 return type;
@@ -341,19 +341,19 @@ expr_tree Program::put_expr(expr_tree expr) {
         case L_assign: case L_imul: case L_idiv: case L_imod:
         case L_iadd: case L_isub: case L_ishl: case L_ishr:
         case L_iand: case L_ixor: case L_ior: {
-            auto[n1, n2] = std::move(expr).split();
-            type = put_lvalue(std::move(n1));
+            auto[node1, node2] = std::move(expr).split();
+            type = put_lvalue(std::move(node1));
             output << '#' << L_push << '\n';
-            put_expr(std::move(n2));
+            put_expr(std::move(node2));
             output << '#' << expr_operator << ' ' << type.lvalue_size() << '\n';
             return type;
         }
         /* common binary operator */
         default: {
-            auto[n1, n2] = std::move(expr).split();
-            type = put_expr(std::move(n1));
+            auto[node1, node2] = std::move(expr).split();
+            type = put_expr(std::move(node1));
             output << '#' << L_push << '\n';
-            put_expr(std::move(n2));
+            put_expr(std::move(node2));
             output << '#' << expr_operator << '\n';
             return type;
         }
@@ -372,14 +372,14 @@ expr_tree Program::put_lvalue(expr_tree expr) {
             type.pop();
             return type;
         case L_index: {
-            auto[n1, n2] = std::move(expr).split();
-            type = put_expr(std::move(n1));
+            auto[node1, node2] = std::move(expr).split();
+            type = put_expr(std::move(node1));
             if (type.is_empty() || type.expr_type() != L_star) {
                 error("trying to dereference non-pointer variabled");
                 return type;
             }
             output << '#' << L_push << '\n';
-            put_expr(std::move(n2));
+            put_expr(std::move(node2));
             output << '#' << L_index_reference << ' ' << pointer_size(type) << '\n';
             type.pop();
             return type;
