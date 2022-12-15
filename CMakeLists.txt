@@ -11,4 +11,4 @@ list(REMOVE_ITEM test_source "${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp")
 
 add_executable(cc ${cc_source})
 add_executable(tests ${test_source})
-target_link_libraries(tests gtest)
+target_link_libraries(tests pthread gtest)
